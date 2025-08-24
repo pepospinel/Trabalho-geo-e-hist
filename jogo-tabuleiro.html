@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Caminho Mágico - Jogo de Tabuleiro</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background-color: #f0f8ff;
+    }
+    .board {
+      display: flex;
+      flex-wrap: wrap;
+      width: 520px;
+      margin: 20px auto;
+    }
+    .cell {
+      width: 50px;
+      height: 50px;
+      border: 1px solid #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #fff;
+      position: relative;
+    }
+    .player {
+      position: absolute;
+      bottom: 2px;
+      right: 2px;
+      font-size: 12px;
+      background: yellow;
+      padding: 2px;
+      border-radius: 3px;
+    }
+    .special {
+      background-color: #ffe4b5;
+    }
+    #log {
+      margin-top: 20px;
+      max-height: 200px;
+      overflow-y: auto;
+      text-align: left;
+      width: 520px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🎲 Caminho Mágico 🎲</h1>
+  <div class="board" id="board"></div>
+
+  <button onclick="rollDice()">🎲 Jogar Dado</button>
+  <p id="status">Jogador 1, é sua vez!</p>
+  <div id="log"></div>
+
+  <script>
+    const boardSize = 20;
+    const specialHouses = {
+      5: 'Você encontrou um atalho mágico! Avance 3 casas.',
+      11: 'Você caiu em uma armadilha! Volte 2 casas.',
+      15: 'Você achou uma poção de velocidade! Jogue o dado novamente.',
+      18: 'Você pisou em lama! Perca a próxima vez.'
+    };
+
+    const players = [
+      { name: "Jogador 1", position: 0, skipTurn: false },
+      { name: "Jogador 2", position: 0, skipTurn: false }
+    ];
+
+    let currentPlayer = 0;
+
+    function createBoard() {
+      const board = document.getElementById('board');
+      for (let i = 1; i <= boardSize; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        if (specialHouses[i]) {
+          cell.classList.add('special');
+          cell.title = specialHouses[i];
+        }
+        cell.id = 'cell-' + i;
+        cell.innerText = i;
+        board.appendChild(cell);
+      }
+    }
+
+    function updateBoard() {
+      for (let i = 1; i <= boardSize; i++) {
+        const cell = document.getElementById('cell-' + i);
+        cell.querySelectorAll('.player').forEach(p => p.remove());
+      }
+
+      players.forEach((player, index) => {
+        if (player.position > 0) {
+          const cell = document.getElementById('cell-' + player.position);
+          const marker = document.createElement('div');
+          marker.className = 'player';
+          marker.innerText = 'P' + (index + 1);
+          cell.appendChild(marker);
+        }
+      });
+    }
+
+    function log(message) {
+      const logDiv = document.getElementById('log');
+      logDiv.innerHTML += `<p>${message}</p>`;
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    function rollDice() {
+      const player = players[currentPlayer];
+
+      if (player.skipTurn) {
+        log(`${player.name} perdeu a vez.`);
+        player.skipTurn = false;
+        nextTurn();
+        return;
+      }
+
+      const roll = Math.floor(Math.random() * 6) + 1;
+      log(`${player.name} rolou um ${roll}.`);
+
+      let newPosition = player.position + roll;
+
+      if (newPosition > boardSize) {
+        const excess = newPosition - boardSize;
+        newPosition = boardSize - excess;
+        log(`${player.name} passou da chegada e voltou ${excess} casas.`);
+      }
+
+      player.position = newPosition;
+      log(`${player.name} está na casa ${newPosition}.`);
+
+      // Verifica eventos especiais
+      const message = specialHouses[newPosition];
+      if (message) {
+        log(`<strong>${message}</strong>`);
+
+        switch (newPosition) {
+          case 5:
+            player.position = Math.min(player.position + 3, boardSize);
+            log(`${player.name} avança para a casa ${player.position}.`);
+            break;
+          case 11:
+            player.position = Math.max(player.position - 2, 1);
+            log(`${player.name} volta para a casa ${player.position}.`);
+            break;
+          case 15:
+            updateBoard();
+            setTimeout(() => {
+              log(`${player.name} joga novamente!`);
+              rollDice();
+            }, 500);
+            return;
+          case 18:
+            player.skipTurn = true;
+            break;
+        }
+      }
+
+      updateBoard();
+
+      if (player.position === boardSize) {
+        log(`<strong>${player.name} venceu o jogo! 🎉</strong>`);
+        document.getElementById('status').innerText = `${player.name} venceu!`;
+        document.querySelector('button').disabled = true;
+        return;
+      }
+
+      nextTurn();
+    }
+
+    function nextTurn() {
+      currentPlayer = (currentPlayer + 1) % players.length;
+      document.getElementById('status').innerText = `${players[currentPlayer].name}, é sua vez!`;
+    }
+
+    createBoard();
+    updateBoard();
+  </script>
+
+</body>
+</html>
